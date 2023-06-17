@@ -1,0 +1,108 @@
+esphome:
+  name: box
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: "network"
+  password: "password"
+  
+  # Включение резервного точки доступа (captive portal) в случае ошибки подключения к Wi-Fi
+  ap:
+    ssid: "Box Fallback Hotspot"
+    password: "88888888"
+
+logger:
+
+api:
+  password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+ota:
+  password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+i2c:
+  sda: D1
+  scl: D2
+  scan: True
+
+# ...
+
+sensor:
+  - platform: mpu6050
+    address: 0x68
+    id: mpu6050s
+    update_interval: 500ms
+    accel_x:
+      name: "Accel X"
+      filters:
+        - multiply: 0.1
+    accel_y:
+      name: "Accel Y"
+      filters:
+        - multiply: 0.1
+    accel_z:
+      name: "Accel Z"
+      filters:
+        - multiply: 0.1
+    gyro_x:
+      name: "Gyro X"
+      filters:
+        - multiply: 0.1
+    gyro_y:
+      name: "Gyro Y"
+      filters:
+        - multiply: 0.1
+    gyro_z:
+      name: "Gyro Z"
+      filters:
+        - multiply: 0.1
+    temperature:
+      name: "MPU6050 Temperature"
+
+  - platform: qmc5883l
+    address: 0x0D
+    id: magnetometer
+    field_strength_x:
+      name: "QMC5883L Field Strength X"
+    field_strength_y:
+      name: "QMC5883L Field Strength Y"
+    field_strength_z:
+      name: "QMC5883L Field Strength Z"
+    heading:
+      name: "QMC5883L Heading"
+    range: 200uT
+    oversampling: 512x
+    update_interval: 500ms
+
+  - platform: adc
+    pin: A0
+    name: "Battery Voltage"
+    id: battery_voltage
+    update_interval: 60s
+    accuracy_decimals: 3
+    filters:
+      - multiply: 3.9
+
+  - platform: template
+    name: "Battery Charge"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      float voltage = id(battery_voltage).state;
+      int charge = 0;
+      if (voltage >= 3.7) {
+        charge = 100;
+      } else if (voltage >= 2.5) {
+        charge = round((voltage - 2.5) / (3.7 - 2.5) * 100);
+      }
+      return charge;
+
+binary_sensor:
+ - platform: status
+   name: "LaundryBot"
+ - platform: gpio
+   pin: GPIO14
+   name: "SW420"
+   device_class: vibration
+   
